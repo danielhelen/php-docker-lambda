@@ -1,0 +1,7 @@
+{
+  "name": "danielhelen/php-docker-lambda",
+  "description": "Executes PHP code within an AWS Lambda function using a Docker container image",
+  "require": {
+    "bref/bref": "^1.4"
+  }
+}
