@@ -7,61 +7,50 @@ PHP itself - is handled by the base image and a package provided by [Bref](https
 
 ## Deployment
 
-Deploying a container image is a bit fiddly. Here we use CloudFormation templates to create the AWS resources - you
-could also use the AWS Management Console or CLI. Ensure you have Docker Desktop and the AWS CLI, and Composer
-installed.
+Here we use CloudFormation templates to create the AWS resources - you could also use the AWS Management Console or CLI.
+Ensure you have Docker Desktop, the AWS CLI, and Composer installed.
 
-1. Install the composer packages:
-    ```
-    composer install -d ./src
-    ```
+1. Create the AWS ECR private repository using the `repository.json` CloudFormation template.
 
-2. Create the AWS ECR private repository using the `repository.json` CloudFormation template.
-
-3. Create the IAM user using the `user.json` CloudFormation template and note the access key and secret access key
+1. Create the IAM user using the `user.json` CloudFormation template and note the access key and secret access key
    available as outputs. Specify the above stack name as a parameter.
 
-4. Add a new profile to your AWS CLI:
+1. Add a new profile to your AWS CLI (to make things easier, keep the profile name the same as the `IMAGE_NAME` variable
+   in your `.env` file):
     ```
     aws configure --profile php-docker-lambda
     ```
 
-5. Build the image:
+1. Create your `.env` file by copying the example file and filling in the details (leave `LAMBDA_FUNCTION_NAME` for
+   now):
     ```
-    docker build -t php-docker-lambda .
-    ```
-
-6. Tag the image (specify your AWS account number and region):
-    ```
-    docker tag php-docker-lambda:latest AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/php-docker-lambda:latest
+    cp .env.example .env
     ```
 
-7. Before you can push that tag you need to authenticate the Docker CLI to the Amazon ECR private repository (specify
-   the AWS account number and region again):
+1. Build the Docker image and push it up to the ECR repository using the `build` bash script:
     ```
-    aws ecr get-login-password --profile php-docker-lambda | docker login --username AWS --password-stdin AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com
-    ```
-
-8. Push the tagged image to the ECR repository (again specify your AWS account number and region):
-    ```
-    docker push AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/php-docker-lambda:latest
+    sh ./build
     ```
 
-9. Create the Lambda function using the `lambda.json` CloudFormation template. Specify the URI of the image in ECR as a
+1. Create the Lambda function using the `lambda.json` CloudFormation template. Specify the URI of the image in ECR as a
    parameter.
 
-10. Create the API Gateway using the `api-gateway.json` CloudFormation template. You will need to specify the name of
-    the stack that created the Lambda function. The invocation URL is available as `InvocationURL` stack output -
-    visiting that URL will invoke the Lambda function.
+1. Update `LAMBDA_FUNCTION_NAME` variable in your `.env` file (helpful for future updates - see below).
+
+1. Create the API Gateway using the `api-gateway.json` CloudFormation template. You will need to specify the name of the
+   stack that created the Lambda function. The invocation URL is available as `InvocationURL` stack output - visiting
+   that URL will invoke the Lambda function.
 
 ## Updates
 
-When you make updates to the source code, you will need to re-build and push the image.
-
-When you push up a new image to the registry, the Lambda function remains unchanged.
-
-Run the following to deploy the new image:
+When you make updates to the source code, you will need to build and push the image again:
 
 ```
-aws lambda update-function-code --profile php-docker-lambda --function-name LAMBDA_FUNCTION_NAME --image-uri AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/php-docker-lambda:latest
+sh ./build
+```
+
+The Lambda function will continue to use the previous image until you re-deploy it using the `deploy` bash script:
+
+```
+sh ./deploy
 ```

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+source .env
+
+IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest"
+
+aws lambda update-function-code --profile "$IMAGE_NAME" --function-name "$LAMBDA_FUNCTION_NAME" --image-uri "$IMAGE_URI"

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+source .env
+
+TAG_NAME="$IMAGE_NAME:latest"
+REGISTRY_HOST="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+IMAGE_URI="$REGISTRY_HOST/$TAG_NAME"
+
+composer install -d ./src
+docker build -t "$IMAGE_NAME" .
+docker tag "$TAG_NAME" "$IMAGE_URI"
+aws ecr get-login-password --profile "$IMAGE_NAME" | docker login --username AWS --password-stdin "$REGISTRY_HOST"
+docker push "$IMAGE_URI"
+
+
